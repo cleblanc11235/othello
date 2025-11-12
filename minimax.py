@@ -19,7 +19,11 @@ minimax(board, depth, maximizing_player, player, alpha=None, beta=None,
     Perform a depth-limited search and return the best score and move.
 """
 
+from __future__ import annotations
+
+from math import inf
 from typing import Callable, Optional, Tuple
+
 from board import Board
 
 
@@ -32,41 +36,91 @@ def minimax(
     beta: Optional[int] = None,
     use_pruning: bool = False,
     heuristic_fn: Optional[Callable[[Board, str], int]] = None,
+    root_player: Optional[str] = None,
 ) -> Tuple[int, Optional[Tuple[int, int]]]:
-    """Perform a minimax search and return the best heuristic score and move.
+    """Perform a minimax search and return the best heuristic score and move."""
 
-    Parameters
-    ----------
-    board : Board
-        The current game state to evaluate.
-    depth : int
-        The remaining depth of the search tree. At depth zero or when the game
-        is over, the heuristic function is applied to evaluate the position.
-    maximizing_player : bool
-        True if the current node is maximizing (AI's turn), False if
-        minimizing (opponent's turn).
-    player : str
-        The color of the player ('B' or 'W') whose turn it is at this node.
-    alpha : Optional[int], default None
-        Alpha value for pruning; best already explored option along the path
-        to the root for the maximizer. Only used if ``use_pruning`` is True.
-    beta : Optional[int], default None
-        Beta value for pruning; best already explored option along the path
-        to the root for the minimizer. Only used if ``use_pruning`` is True.
-    use_pruning : bool, default False
-        Enable alpha–beta pruning if True.
-    heuristic_fn : Optional[Callable[[Board, str], int]], default None
-        Function that takes a Board and a player symbol and returns an
-        evaluation score. If None, the caller must ensure a valid heuristic
-        function is passed.
+    if heuristic_fn is None:
+        raise ValueError("A heuristic function must be provided to minimax().")
 
-    Returns
-    -------
-    Tuple[int, Optional[Tuple[int, int]]]
-        A pair ``(best_score, best_move)`` where ``best_move`` is a (row,
-        column) tuple for the chosen move or None if no legal moves exist.
+    if root_player is None:
+        root_player = player
 
-    ``TODO``: Implement the minimax algorithm with optional alpha–beta pruning.
-    """
-    # TODO: implement minimax search
-    return 0, None
+    if depth == 0 or board.is_game_over():
+        return heuristic_fn(board, root_player), None
+
+    alpha_value = -inf if use_pruning and alpha is None else alpha
+    beta_value = inf if use_pruning and beta is None else beta
+
+    opponent = "W" if player == "B" else "B"
+    valid_moves = board.get_valid_moves(player)
+
+    if not valid_moves:
+        if board.is_game_over() or depth == 0:
+            return heuristic_fn(board, root_player), None
+        score, _ = minimax(
+            board,
+            depth - 1,
+            not maximizing_player,
+            opponent,
+            alpha_value,
+            beta_value,
+            use_pruning,
+            heuristic_fn,
+            root_player,
+        )
+        return score, None
+
+    if maximizing_player:
+        best_score = -inf
+        best_move: Optional[Tuple[int, int]] = None
+
+        for move in valid_moves:
+            new_board = board.copy()
+            new_board.make_move(move[0], move[1], player)
+            score, _ = minimax(
+                new_board,
+                depth - 1,
+                False,
+                opponent,
+                alpha_value,
+                beta_value,
+                use_pruning,
+                heuristic_fn,
+                root_player,
+            )
+            if score > best_score:
+                best_score = score
+                best_move = move
+            if use_pruning:
+                alpha_value = max(alpha_value, best_score)
+                if beta_value is not None and alpha_value is not None and alpha_value >= beta_value:
+                    break
+        return best_score, best_move
+
+    best_score = inf
+    best_move = None
+
+    for move in valid_moves:
+        new_board = board.copy()
+        new_board.make_move(move[0], move[1], player)
+        score, _ = minimax(
+            new_board,
+            depth - 1,
+            True,
+            opponent,
+            alpha_value,
+            beta_value,
+            use_pruning,
+            heuristic_fn,
+            root_player,
+        )
+        if score < best_score:
+            best_score = score
+            best_move = move
+        if use_pruning:
+            beta_value = min(beta_value, best_score)
+            if alpha_value is not None and beta_value is not None and beta_value <= alpha_value:
+                break
+
+    return best_score, best_move
