@@ -19,46 +19,33 @@ from typing import Tuple
 
 
 def parse_move(move_str: str) -> Tuple[int, int]:
-    """Convert a move such as 'D3' to a zero-based (row, column) tuple.
+    """Convert a move such as 'D3' to a zero-based (row, column) tuple."""
 
-    Parameters
-    ----------
-    move_str : str
-        A two-character string consisting of a column letter (A–H or a–h)
-        followed by a row number (1–8). Whitespace should be ignored.
+    if move_str is None:
+        raise ValueError("Move string cannot be None.")
 
-    Returns
-    -------
-    Tuple[int, int]
-        A tuple ``(row_index, col_index)`` with zero-based indices.
+    cleaned = move_str.strip().upper()
+    if len(cleaned) != 2:
+        raise ValueError(f"Invalid move '{move_str}'. Expected format like 'D3'.")
 
-    Raises
-    ------
-    ValueError
-        If ``move_str`` does not denote a valid board coordinate.
+    column_char, row_char = cleaned[0], cleaned[1]
+    if column_char < "A" or column_char > "H":
+        raise ValueError(f"Invalid column '{column_char}'. Must be between A and H.")
 
-    ``TODO``: Implement move parsing with appropriate validation and error
-    handling.
-    """
-    # TODO: implement move parsing
-    return (0, 0)
+    if row_char < "1" or row_char > "8":
+        raise ValueError(f"Invalid row '{row_char}'. Must be between 1 and 8.")
+
+    col_index = ord(column_char) - ord("A")
+    row_index = int(row_char) - 1
+    return row_index, col_index
 
 
 def format_move(row: int, col: int) -> str:
-    """Convert a zero-based (row, column) pair into a human-readable move.
+    """Convert a zero-based (row, column) pair into a human-readable move."""
 
-    Parameters
-    ----------
-    row, col : int
-        Zero-based indices representing a square on the board.
+    if not (0 <= row < 8 and 0 <= col < 8):
+        raise ValueError("Row and column must be between 0 and 7 inclusive.")
 
-    Returns
-    -------
-    str
-        A two-character string such as 'D3'. This is the inverse of
-        ``parse_move``.
-
-    ``TODO``: Implement move formatting.
-    """
-    # TODO: implement move formatting
-    return "A1"
+    column_char = chr(ord("A") + col)
+    row_char = str(row + 1)
+    return f"{column_char}{row_char}"

@@ -24,7 +24,6 @@ main()
 """
 
 import argparse
-from typing import Optional
 
 from board import Board
 from minimax import minimax
@@ -32,35 +31,94 @@ from heuristic import simple_heuristic
 from utils import parse_move, format_move
 
 
+def _opponent(player: str) -> str:
+    return "W" if player == "B" else "B"
+
+
+def _prompt_player_color() -> str:
+    while True:
+        choice = input("Choose your color (B for black, W for white): ").strip().upper()
+        if choice in {"B", "W"}:
+            return choice
+        print("Invalid choice. Please enter 'B' or 'W'.")
+
+
+def _print_scores(board: Board) -> None:
+    black, white = board.count_pieces()
+    print(f"Score -> Black: {black}  White: {white}")
+
+
 def play_game(depth: int = 3, debug: bool = False, use_pruning: bool = False) -> None:
-    """Play a game of Othello between a human and the AI.
+    """Play a game of Othello between a human and the AI."""
 
-    Parameters
-    ----------
-    depth : int, optional
-        Search depth for the AI (default is 3).
-    debug : bool, optional
-        If True, print debug information about the AI's search (default is False).
-    use_pruning : bool, optional
-        If True, enable alpha–beta pruning (default is False).
+    board = Board()
+    human_player = _prompt_player_color()
+    ai_player = _opponent(human_player)
 
-    Notes
-    -----
-    This function should create a Board instance, prompt the user to choose a
-    color (black moves first), then alternate between human and AI moves
-    until the game ends. After each move, display the board and current
-    score. When the game is over, announce the winner. If ``debug`` is
-    enabled, you may call the ``minimax`` function with instrumentation to
-    display explored nodes and heuristic values.
+    current_player = "B"
+    board.display()
+    _print_scores(board)
 
-    ``TODO``: Implement the main game loop.
-    """
-    # TODO: implement game loop
-    pass
+    while not board.is_game_over():
+        valid_moves = board.get_valid_moves(current_player)
+
+        if not valid_moves:
+            print(f"{current_player} has no valid moves and must pass.")
+            current_player = _opponent(current_player)
+            continue
+
+        if current_player == human_player:
+            while True:
+                move_input = input("Enter your move (e.g., D3) or 'quit' to exit: ").strip()
+                if move_input.lower() in {"quit", "exit"}:
+                    print("Exiting game.")
+                    return
+                try:
+                    move = parse_move(move_input)
+                except ValueError as exc:
+                    print(exc)
+                    continue
+                if move not in valid_moves:
+                    print("Illegal move. Available moves:", ", ".join(format_move(r, c) for r, c in valid_moves))
+                    continue
+                board.make_move(move[0], move[1], current_player)
+                break
+        else:
+            if debug:
+                print(f"AI ({ai_player}) is thinking...")
+            score, best_move = minimax(
+                board,
+                depth,
+                True,
+                ai_player,
+                use_pruning=use_pruning,
+                heuristic_fn=simple_heuristic,
+            )
+            if best_move is None:
+                print("AI must pass.")
+                current_player = _opponent(current_player)
+                continue
+            board.make_move(best_move[0], best_move[1], current_player)
+            if debug:
+                print(f"AI selects {format_move(best_move[0], best_move[1])} with score {score}")
+
+        board.display()
+        _print_scores(board)
+        current_player = _opponent(current_player)
+
+    black, white = board.count_pieces()
+    print("Game over!")
+    if black > white:
+        print("Black wins!")
+    elif white > black:
+        print("White wins!")
+    else:
+        print("The game is a draw.")
 
 
 def main() -> None:
     """Parse command-line arguments and start an Othello game."""
+
     parser = argparse.ArgumentParser(description="Play Othello against an AI using the minimax algorithm.")
     parser.add_argument(
         "--depth",
@@ -80,7 +138,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    play_game(depth=args.depth, debug=args.debug, use_pruning=args.prune)
+    try:
+        play_game(depth=args.depth, debug=args.debug, use_pruning=args.prune)
+    except KeyboardInterrupt:
+        print("\nGame interrupted by user.")
 
 
 if __name__ == "__main__":

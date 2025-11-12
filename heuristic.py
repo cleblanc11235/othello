@@ -23,79 +23,47 @@ corner_heuristic(board, player)
     Evaluate based on control of the four corners.
 """
 
-from typing import Any
 from board import Board
 
 
+def _opponent(player: str) -> str:
+    return "W" if player == "B" else "B"
+
+
 def simple_heuristic(board: Board, player: str) -> int:
-    """Return a simple heuristic value based on piece count difference.
+    """Return a simple heuristic value based on piece count difference."""
 
-    Parameters
-    ----------
-    board : Board
-        Current game state.
-    player : str
-        Player symbol ('B' or 'W') for whom the heuristic is being
-        calculated.
-
-    Returns
-    -------
-    int
-        Positive if ``player`` has more pieces than the opponent, negative
-        if fewer.
-
-    ``TODO``: Implement piece difference heuristic.
-    """
-    # TODO: implement piece count heuristic
-    return 0
+    black, white = board.count_pieces()
+    if player == "B":
+        return black - white
+    return white - black
 
 
 def mobility_heuristic(board: Board, player: str) -> int:
-    """Return a heuristic value based on the difference in legal moves.
+    """Return a heuristic value based on the difference in legal moves."""
 
-    The idea is that a position where you have more options than your
-    opponent is generally better.
-
-    Parameters
-    ----------
-    board : Board
-        Current game state.
-    player : str
-        Player symbol ('B' or 'W').
-
-    Returns
-    -------
-    int
-        Positive if ``player`` can move to more squares than the opponent,
-        negative if fewer.
-
-    ``TODO``: Implement mobility heuristic.
-    """
-    # TODO: implement mobility heuristic
-    return 0
+    opponent = _opponent(player)
+    player_moves = len(board.get_valid_moves(player))
+    opponent_moves = len(board.get_valid_moves(opponent))
+    return player_moves - opponent_moves
 
 
 def corner_heuristic(board: Board, player: str) -> int:
-    """Return a heuristic value based on control of the corners.
+    """Return a heuristic value based on control of the corners."""
 
-    The four corners of the Othello board are particularly valuable because
-    discs placed there cannot be outflanked. Occupying a corner is usually
-    advantageous, while allowing your opponent to do so is disadvantageous.
+    corners = [
+        (0, 0),
+        (0, board.BOARD_SIZE - 1),
+        (board.BOARD_SIZE - 1, 0),
+        (board.BOARD_SIZE - 1, board.BOARD_SIZE - 1),
+    ]
+    opponent = _opponent(player)
+    score = 0
 
-    Parameters
-    ----------
-    board : Board
-        Current game state.
-    player : str
-        Player symbol ('B' or 'W').
+    for row, col in corners:
+        if board.grid[row][col] == player:
+            score += 1
+        elif board.grid[row][col] == opponent:
+            score -= 1
 
-    Returns
-    -------
-    int
-        A positive value if ``player`` occupies more corners than the
-        opponent; negative if fewer.
-
-    ``TODO``: Implement corner control heuristic.
-    """
-    # TODO: implement corner control heuristic
-    return 0
+    return score
